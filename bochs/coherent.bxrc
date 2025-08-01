@@ -1,0 +1,28 @@
+# Bochs configuration for COHERENT OS
+
+# emulated machine shall have 8MB RAM
+megs: 8
+
+# filename of ROM images
+romimage: file=$BOCHS_INSTALL/BIOS-bochs-legacy
+vgaromimage: file=$BOCHS_INSTALL/VGABIOS-lgpl-latest.bin
+
+# we start COHERENT from a floppy disk (only)
+floppya: 1_44="../floppy/boot.img", status=inserted
+
+# choose boot device
+boot: a
+
+# describe CPU used
+cpu: model=pentium
+
+# where do we send log messages to?
+log: nul
+
+# disable the mouse
+mouse: enabled=0
+
+# enable key mapping, using DE layout as default.
+keyboard: keymap=$BOCHS_INSTALL/keymaps/x11-pc-de.map
+
+display_library: win32

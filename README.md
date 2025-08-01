@@ -40,7 +40,7 @@ Commands are for example:
     echo "Hi there!" > /tmp/hello.txt
     doscp /tmp/hello.txt b:
 ```
-(4) on host use something like the Perl scripts [dosdir.pl](...) and [doscp.pl](...):
+(4) on host use something like the Perl scripts [dosdir.pl](floppy/dosdir.pl) and [doscp.pl](floppy/doscp.pl):
 ```
     dosdir.pl floppy.img
     doscp.pl floppy.img hello.txt
