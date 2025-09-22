@@ -6,14 +6,31 @@
 #
 #   changes:
 #   2025/07/30   creation.
+#   2025/09/15   read whole file from image.
 #
 #   remarks:
-#   - currently only takes care of 1.44MB floppies
+#   - currently only takes care of 1.44MB floppies.
 #
 #####
 
 $NUMBER_OF_BLOCKS = 2880;
 $BLOCK_SIZE       = 512;
+
+sub cluster {
+    my ($fat, $cluster) = @_;
+    my $offset = int($cluster * 3 / 2);
+    my $byte1 = ord(substr($fat, $offset, 1));
+    my $byte2 = ord(substr($fat, $offset + 1, 1));
+    my $next_cluster;
+    if ($cluster % 2 == 0) {
+        # Even cluster: take low 8 bits of byte1 and high 4 bits of byte2.
+        $next_cluster = ($byte2 & 0x0F) << 8 | $byte1;
+    } else {
+        # Odd cluster: take high 4 bits of byte1 and all 8 bits of byte2.
+        $next_cluster = $byte2 << 4 | ($byte1 >> 4);
+    }
+    return $next_cluster;
+}
 
 if($#ARGV == 1) {
 	# open image given image file.
@@ -62,8 +79,10 @@ if($#ARGV == 1) {
 			# is it file we're looking for?
 			if($name eq uc $ARGV[1])
 			{
+				binmode(STDOUT);
+				
 				# get FAT from image.
-				my $fat = substr $image, BLOCK_SIZE, BLOCK_SIZE * BLOCKS_PER_FAT;
+				my $fat = substr $image, $BLOCK_SIZE, $BLOCK_SIZE * $BLOCKS_PER_FAT;
 
 				# get size of file.
 				my $size = unpack "L", substr $entry, 0x1C, 4;
@@ -71,13 +90,24 @@ if($#ARGV == 1) {
 				# get first file cluster.
 				my $cluster = unpack "v", substr $entry, 0x1A, 2;
 
-				# get absolute offset on floppy.
-				my $offset = (31 + $cluster) * $BLOCK_SIZE;
+				while(0 < $size && $cluster < 0xFF7) {
+					# get absolute offset on floppy.
+					my $offset = (31 + $cluster) * $BLOCK_SIZE;
 
-				# finally get file contents (1st cluster only).
-				my $data = substr $image, $offset, $size < $BLOCK_SIZE ? $size : $BLOCK_SIZE;
-				
-				print STDOUT $data;
+					# number of bytes to read.
+					my $count = $size < $BLOCK_SIZE ? $size : $BLOCK_SIZE;
+
+					# finally get file contents.
+					my $data = substr $image, $offset, $count;
+					
+					print STDOUT $data;
+					
+					# next cluster to read from.
+					$cluster = cluster($fat, $cluster);
+					
+					# remaining bytes to read.
+					$size -= $count;
+				}
 				
 				exit;
 			}
